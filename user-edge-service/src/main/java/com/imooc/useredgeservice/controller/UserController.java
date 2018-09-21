@@ -2,11 +2,16 @@ package com.imooc.useredgeservice.controller;
 
 
 import com.imooc.thrift.user.UserInfo;
+import com.imooc.useredgeservice.dto.UserDTO;
+import com.imooc.useredgeservice.redis.RedisClient;
+import com.imooc.useredgeservice.response.LoginRsp;
 import com.imooc.useredgeservice.response.Response;
 import com.imooc.useredgeservice.thrift.ServiceProvider;
 import org.apache.thrift.TException;
 import org.apache.tomcat.util.buf.HexUtils;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -19,6 +24,10 @@ public class UserController {
     @Autowired
     private ServiceProvider serviceProvider;
 
+    @Autowired
+    private RedisClient redisClient;
+
+    @PostMapping("/login")
     public Object login(@RequestParam("username") String username,
                       @RequestParam("password") String password) {
         UserInfo userInfo;
@@ -37,6 +46,14 @@ public class UserController {
 
         String token = genToken();
 
+        redisClient.set(token, toDTO(userInfo), 3600);
+        return new LoginRsp(token);
+    }
+
+    private UserDTO toDTO(UserInfo userInfo) {
+        UserDTO userDTO = new UserDTO();
+        BeanUtils.copyProperties(userDTO, userDTO);
+        return userDTO;
     }
 
     private String genToken() {
@@ -58,7 +75,7 @@ public class UserController {
         try {
             MessageDigest md5 = MessageDigest.getInstance("MD5");
             byte[] md5Bytes = md5.digest(password.getBytes());
-            return HexUtils.toHexString(md5Bytes)
+            return HexUtils.toHexString(md5Bytes);
         } catch (Exception e) {
             e.printStackTrace();
         }
