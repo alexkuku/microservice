@@ -52,7 +52,7 @@ public class UserController {
 
     private UserDTO toDTO(UserInfo userInfo) {
         UserDTO userDTO = new UserDTO();
-        BeanUtils.copyProperties(userDTO, userDTO);
+        BeanUtils.copyProperties(userInfo, userDTO);
         return userDTO;
     }
 
