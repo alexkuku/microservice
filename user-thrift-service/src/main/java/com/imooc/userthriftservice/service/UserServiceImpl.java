@@ -20,7 +20,9 @@ public class UserServiceImpl implements UserService.Iface {
 
     @Override
     public UserInfo getUserByName(String username) throws TException {
+        System.out.println("==========ssss=========");
         return userDao.getUserByName(username);
+
     }
 
     @Override

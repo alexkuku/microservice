@@ -40,14 +40,14 @@ public class RedisConfig extends CachingConfigurerSupport {
         return cacheManager;
     }
 
-    @Bean
-    public JedisConnectionFactory redisConnectionFactory() {
-        JedisConnectionFactory factory = new JedisConnectionFactory();
-        factory.setHostName(host);
-        factory.setPort(port);
-        factory.setTimeout(timeout);
-        return factory;
-    }
+//    @Bean
+//    public JedisConnectionFactory redisConnectionFactory() {
+//        RedisConnectionFactory factory = new RedisConnectionFactory();
+//        factory.setHostName(host);
+//        factory.setPort(port);
+//        factory.setTimeout(timeout);
+//        return factory;
+//    }
 
     @Bean
     public RedisTemplate<String, String> redisTemplate(RedisConnectionFactory factory){

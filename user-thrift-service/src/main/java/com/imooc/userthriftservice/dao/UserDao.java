@@ -11,11 +11,11 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface UserDao {
 
-    @Select("SELECT id, username, password, real_name realName, mobile, email FROM pe_user" +
+    @Select("SELECT id, username, password, real_name realName, mobile, email FROM pe_user " +
             "WHERE id = #{id}")
     UserInfo getUserById(@Param("id") int id);
 
-    @Select("SELECT id, username, password, real_name realName, mobile, email FROM pe_user" +
+    @Select("SELECT id, username, password, real_name realName, mobile, email FROM pe_user " +
             "WHERE username = #{name}")
     UserInfo getUserByName(@Param("name") String name);
 
