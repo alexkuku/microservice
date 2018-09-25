@@ -11,6 +11,8 @@ import org.apache.thrift.TException;
 import org.apache.tomcat.util.buf.HexUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.util.StringUtils;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -48,6 +50,67 @@ public class UserController {
 
         redisClient.set(token, toDTO(userInfo), 3600);
         return new LoginRsp(token);
+    }
+
+    @GetMapping("/code/send")
+    public Object SendVerifyCode(@RequestParam(value = "mobile", required = false) String mobile,
+                                 @RequestParam(value = "email",required = false) String email) {
+        String message = "Verify code is :";
+        String code = randomCode("0123456789", 4);
+        try {
+            boolean result;
+            if (!StringUtils.isEmpty(mobile)) {
+                result = serviceProvider.getMessageService().sendMobileMessage(mobile, message + code);
+                redisClient.set(mobile, code);
+            } else if(!StringUtils.isEmpty(email)) {
+                result = serviceProvider.getMessageService().sendEmailMessage(email, message + code);
+                redisClient.set(email, code);
+            } else {
+                return Response.MOBILE_OR_EMAIL_REQUIRED;
+            }
+            if (!result) {
+                return Response.SEND_VERIFY_CODE_FAILED;
+            }
+        } catch (TException e) {
+            e.printStackTrace();
+            return Response.exception(e);
+        }
+        return Response.SUCCESS;
+    }
+
+    @PostMapping("/register")
+    public Object register(@RequestParam("username") String username,
+                             @RequestParam("password") String password,
+                             @RequestParam(value = "mobile", required = false) String mobile,
+                             @RequestParam(value = "email", required = false) String email,
+                             @RequestParam("verify_code") String verifyCode) {
+        if (StringUtils.isEmpty(mobile) && StringUtils.isEmpty(email)) {
+            return Response.MOBILE_OR_EMAIL_REQUIRED;
+        }
+        if (!StringUtils.isEmpty(mobile)) {
+            String code = redisClient.get(mobile);
+            if (!verifyCode.equals(code)) {
+                return Response.VERIFY_CODE_ERROR;
+            }
+        } else {
+            String code = redisClient.get(email);
+            if (!verifyCode.equals(code)) {
+                return Response.VERIFY_CODE_ERROR;
+            }
+        }
+        UserInfo userInfo = new UserInfo();
+        userInfo.setUsername(username);
+        userInfo.setPassword(md5(password));
+        userInfo.setMobile(mobile);
+        userInfo.setEmail(email);
+        try {
+            serviceProvider.getUserService().registerUser(userInfo);
+        } catch (TException e) {
+            e.printStackTrace();
+            return Response.exception(e);
+        }
+        return Response.SUCCESS;
+
     }
 
     private UserDTO toDTO(UserInfo userInfo) {
