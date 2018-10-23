@@ -20,6 +20,11 @@ public interface UserDao {
     UserInfo getUserByName(@Param("name") String name);
 
     @Insert("INSERT INTO pe_user(id, username, password, real_name, mobile, email) " +
-            "VALUES(#{id}, #{userName}, #{password}, #{realName}, #{mobile}, #{email})")
+            "VALUES(#{id}, #{username}, #{password}, #{realName}, #{mobile}, #{email})")
     void registerUser(UserInfo userInfo);
+
+    @Select("SELECT u.id, u.username, u.password, u.real_name realName, " +
+            "u.mobile, u.email, t.intro, t.stars FROM pe_user u, pe_teacher t WHERE u.id = #{id} " +
+            "AND u.id = t.user_id")
+    UserInfo getTeacherById(@Param("id") int id);
 }

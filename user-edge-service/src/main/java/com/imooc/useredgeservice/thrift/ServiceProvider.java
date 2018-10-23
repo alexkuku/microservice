@@ -10,6 +10,7 @@ import org.apache.thrift.transport.TSocket;
 import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -31,13 +32,17 @@ public class ServiceProvider {
         MESSAGE
     }
 
+    @Bean
     public UserService.Client getUserService() {
         return getService(serverIp, serverPort, ServiceType.USER);
     }
 
+    @Bean
     public MessageService.Client getMessageService() {
         return getService(messageServerIp, messageServerPort, ServiceType.MESSAGE);
     }
+
+
     public <T>T getService(String ip, int port, ServiceType type) {
         TSocket socket = new TSocket(ip, port, 3000);
         TTransport tTransport = new TFramedTransport(socket);
@@ -59,6 +64,7 @@ public class ServiceProvider {
                 client = new MessageService.Client(protocol);
                 break;
         }
+
 
         return (T)client;
     }

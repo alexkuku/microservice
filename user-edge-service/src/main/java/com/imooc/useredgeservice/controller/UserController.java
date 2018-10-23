@@ -1,7 +1,10 @@
 package com.imooc.useredgeservice.controller;
 
 
+import com.imooc.dto.TeacherDTO;
+import com.imooc.thrift.message.MessageService;
 import com.imooc.thrift.user.UserInfo;
+import com.imooc.thrift.user.UserService;
 import com.imooc.useredgeservice.dto.UserDTO;
 import com.imooc.useredgeservice.redis.RedisClient;
 import com.imooc.useredgeservice.response.LoginRsp;
@@ -11,30 +14,42 @@ import org.apache.thrift.TException;
 import org.apache.tomcat.util.buf.HexUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.util.StringUtils;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.security.MessageDigest;
 import java.util.Random;
+import java.util.concurrent.TimeUnit;
 
 @RestController
+@RequestMapping("/user")
 public class UserController {
 
     @Autowired
-    private ServiceProvider serviceProvider;
+    private UserService.Client userClient;
 
     @Autowired
-    private RedisClient redisClient;
+    private MessageService.Client msgClient;
+
+    @Autowired
+    private MessageService.Client mClient;
+    @Autowired
+    private RedisTemplate<String, String> redisClient;
+    @Autowired
+    private RedisTemplate<String, UserDTO> redisClientUser;
+
+    @GetMapping("/login")
+    public Object login() {
+        return "please login first!";
+    }
 
     @PostMapping("/login")
     public Object login(@RequestParam("username") String username,
                       @RequestParam("password") String password) {
         UserInfo userInfo;
         try {
-            userInfo = serviceProvider.getUserService().getUserByName(username);
+            userInfo = userClient.getUserByName(username);
         } catch (TException e) {
             e.printStackTrace();
             return Response.USERNAME_INVALID;
@@ -47,8 +62,12 @@ public class UserController {
         }
 
         String token = genToken();
+        System.out.println(token);
+        UserDTO userDTO = toDTO(userInfo);
+        System.out.println(userDTO);
+        redisClientUser.opsForValue().set(token, userDTO, 3600, TimeUnit.SECONDS);
+        System.out.println(redisClient.opsForValue().get(token));
 
-        redisClient.set(token, toDTO(userInfo), 3600);
         return new LoginRsp(token);
     }
 
@@ -60,11 +79,11 @@ public class UserController {
         try {
             boolean result;
             if (!StringUtils.isEmpty(mobile)) {
-                result = serviceProvider.getMessageService().sendMobileMessage(mobile, message + code);
-                redisClient.set(mobile, code);
+                result = mClient.sendMobileMessage(mobile, message + code);
+                redisClient.opsForValue().set(mobile, code);
             } else if(!StringUtils.isEmpty(email)) {
-                result = serviceProvider.getMessageService().sendEmailMessage(email, message + code);
-                redisClient.set(email, code);
+                result = mClient.sendEmailMessage(email, message + code);
+                redisClient.opsForValue().set(email, code);
             } else {
                 return Response.MOBILE_OR_EMAIL_REQUIRED;
             }
@@ -88,12 +107,12 @@ public class UserController {
             return Response.MOBILE_OR_EMAIL_REQUIRED;
         }
         if (!StringUtils.isEmpty(mobile)) {
-            String code = redisClient.get(mobile);
+            String code = redisClient.opsForValue().get(mobile);
             if (!verifyCode.equals(code)) {
                 return Response.VERIFY_CODE_ERROR;
             }
         } else {
-            String code = redisClient.get(email);
+            String code = redisClient.opsForValue().get(email);
             if (!verifyCode.equals(code)) {
                 return Response.VERIFY_CODE_ERROR;
             }
@@ -104,7 +123,7 @@ public class UserController {
         userInfo.setMobile(mobile);
         userInfo.setEmail(email);
         try {
-            serviceProvider.getUserService().registerUser(userInfo);
+            userClient.registerUser(userInfo);
         } catch (TException e) {
             e.printStackTrace();
             return Response.exception(e);
@@ -113,9 +132,25 @@ public class UserController {
 
     }
 
+    @GetMapping("/authentication")
+    public UserDTO authentication(@RequestHeader("token") String token) {
+        return redisClientUser.opsForValue().get(token);
+    }
+
+    @GetMapping("/teacher")
+    public UserInfo getTeacher(@RequestParam("id") int id ) throws TException {
+        return userClient.getTeacherById(id);
+    }
+
+    @GetMapping("/user")
+    public UserInfo getUser(@RequestParam("id") int id ) throws TException {
+        return userClient.getUserById(id);
+    }
+
     private UserDTO toDTO(UserInfo userInfo) {
         UserDTO userDTO = new UserDTO();
         BeanUtils.copyProperties(userInfo, userDTO);
+        System.out.println(userDTO.toString());
         return userDTO;
     }
 

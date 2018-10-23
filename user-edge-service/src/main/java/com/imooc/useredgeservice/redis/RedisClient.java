@@ -6,7 +6,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.concurrent.TimeUnit;
 
-@Component
+
 public class RedisClient {
     @Autowired
     private RedisTemplate redisTemplate;
@@ -19,7 +19,7 @@ public class RedisClient {
         redisTemplate.opsForValue().set(key, value);
     }
     public void set(String key, Object value, int timeout) {
-        redisTemplate.opsForValue().set(key, value, timeout);
+        redisTemplate.opsForValue().set(key, value, timeout, TimeUnit.SECONDS);
     }
 
     public void expire(String key, int timeout) {

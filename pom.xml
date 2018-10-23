@@ -6,7 +6,10 @@
     <groupId>com.imooc</groupId>
     <artifactId>microservice</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <packaging>jar</packaging>
+    <modules>
+        <module>course-dubbo-service-api</module>
+    </modules>
+    <packaging>pom</packaging>
 
     <name>microservice</name>
     <description>Demo project for Spring Boot</description>
